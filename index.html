@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kawaii Cat RPG - C++ Source Code 🐱💖</title>
+    
+    <!-- Prism.js for beautiful syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css" rel="stylesheet" />
+    <style>
+        body {
+            background: #272822;
+            color: #f8f8f2;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 1.3em;
+            margin-bottom: 40px;
+            color: #ff79c6;
+        }
+        pre {
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        }
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            font-size: 1.1em;
+            color: #8be9fd;
+        }
+    </style>
+</head>
+<body>
+    <h1>🐱✨ Kawaii Cat RPG ✨🐱</h1>
+    <p class="subtitle">Full C++ Source Code (Updated Version)</p>
+
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;string&gt;
+#include &lt;cstdlib&gt;
+#include &lt;ctime&gt;
+#include &lt;windows.h&gt; // For Beep(), Sleep(), and system("cls") - Windows only
+using namespace std;
+
+struct Player {
+    int level = 1;
+    int hp = 50;
+    int maxHp = 50;
+    int attack = 10;
+    int exp = 0;
+    int expToNext = 150;  // Updated: higher starting EXP for balanced ~2 min per level
+    int coins = 0;
+    int potions = 0;
+};
+
+struct Enemy {
+    string name;
+    int hp;
+    int attack;
+    int expReward;
+    int coinReward;
+};
+
+void beepAttack() { Beep(1000, 150); }
+void beepCoin() { Beep(800, 100); Beep(1000, 100); Beep(1200, 200); }
+void beepLevelUp() { Beep(1200, 200); Beep(1400, 200); Beep(1600, 400); }
+void beepHurt() { Beep(400, 300); }
+void beepGameOver() { Beep(200, 1000); }
+
+void battle(Player&amp; p, Enemy e) {
+    system("cls");
+    cout &lt;&lt; "🐱💥 A wild " &lt;&lt; e.name &lt;&lt; " appears! Nya~ 💥\n\n";
+    beepHurt();
+    Sleep(1500);
+
+    while (true) {
+        system("cls");
+        cout &lt;&lt; " /\\_/\\ \n";
+        cout &lt;&lt; " ( =^.^= ) \n";
+        cout &lt;&lt; " (\")(\") ♥ Your HP: " &lt;&lt; p.hp &lt;&lt; "/" &lt;&lt; p.maxHp &lt;&lt; "\n\n";
+        cout &lt;&lt; " Enemy: " &lt;&lt; e.name &lt;&lt; " HP: " &lt;&lt; e.hp &lt;&lt; "\n\n";
+        cout &lt;&lt; "1. Claw Attack ⚔️\n";
+        cout &lt;&lt; "2. Use Potion 🧪 (" &lt;&lt; p.potions &lt;&lt; " left)\n";
+        cout &lt;&lt; "3. Run Away 🏃\n";
+        cout &lt;&lt; "Choice: ";
+       
+        int choice;
+        cin &gt;&gt; choice;
+
+        if (choice == 1) {
+            int damage = p.attack + (rand() % 8);
+            e.hp -= damage;
+            cout &lt;&lt; "\nYou scratched with cute claws for " &lt;&lt; damage &lt;&lt; " damage! Nya~ ✨\n";
+            beepAttack();
+
+            if (e.hp &lt;= 0) {
+                cout &lt;&lt; "\nYou defeated the " &lt;&lt; e.name &lt;&lt; "! Victory purr~ 🎉\n";
+                p.exp += e.expReward;
+                p.coins += e.coinReward;
+                cout &lt;&lt; "+ " &lt;&lt; e.expReward &lt;&lt; " EXP + " &lt;&lt; e.coinReward &lt;&lt; " coins 💰\n";
+                beepCoin();
+
+                if (p.exp &gt;= p.expToNext) {
+                    p.level++;
+                    p.exp -= p.expToNext;
+                    p.expToNext += 30;  // Updated: slower EXP growth (~3.8 battles per level on average)
+                    p.maxHp += 10;      // Updated: reduced from +12 for increasing difficulty
+                    p.hp = p.maxHp;     // Full heal on level up
+                    p.attack += 3;      // Updated: reduced from +4 for increasing difficulty
+                    cout &lt;&lt; "\n✨ LEVEL UP! ✨ Now level " &lt;&lt; p.level &lt;&lt; "! Stronger and cuter~ 🐱💖\n";
+                    beepLevelUp();
+
+                    if (p.level &gt;= 99) {
+                        cout &lt;&lt; "\n🎉🎉 CONGRATULATIONS!!! 🎉🎉\n";
+                        cout &lt;&lt; "You reached level 99! You are the ultimate kawaii cat hero! 🏆🐱✨\n";
+                        Sleep(5000);
+                    }
+                }
+                Sleep(2000);
+                return;
+            }
+        }
+        else if (choice == 2) {
+            if (p.potions &gt; 0) {
+                p.potions--;
+                p.hp += 40;
+                if (p.hp &gt; p.maxHp) p.hp = p.maxHp;
+                cout &lt;&lt; "\nYou drank a sparkling potion! +40 HP ~purr~ 🧪💕\n";
+            } else {
+                cout &lt;&lt; "\nNo potions left! Nya... 😿\n";
+            }
+        }
+        else if (choice == 3) {
+            if (rand() % 3 != 0) { // 66% chance to escape
+                cout &lt;&lt; "\nYou ran away safely! 🏃💨\n";
+                Sleep(1500);
+                return;
+            } else {
+                cout &lt;&lt; "\nCouldn't escape! The enemy attacks! 😾\n";
+            }
+        }
+
+        // Enemy turn
+        if (e.hp &gt; 0) {
+            int damage = e.attack + (rand() % 6);
+            p.hp -= damage;
+            cout &lt;&lt; "\nThe " &lt;&lt; e.name &lt;&lt; " attacks for " &lt;&lt; damage &lt;&lt; " damage! Ouch~ 😿\n";
+            beepHurt();
+
+            if (p.hp &lt;= 0) {
+                system("cls");
+                cout &lt;&lt; "🐱💔 You fainted... Game Over nya... 💔\n";
+                beepGameOver();
+                Sleep(3000);
+                // Reset to start (harsh mode!)
+                p.level = 1;
+                p.hp = p.maxHp = 50;
+                p.attack = 10;
+                p.exp = 0;
+                p.expToNext = 150;
+                p.coins = 0;
+                p.potions = 0;
+                return;
+            }
+        }
+        Sleep(1800);
+    }
+}
+
+void shop(Player&amp; p) {
+    while (true) {
+        system("cls");
+        cout &lt;&lt; "🐱🛍️ Welcome to the Kawaii Shop! 🛍️🐱\n";
+        cout &lt;&lt; "Your coins: " &lt;&lt; p.coins &lt;&lt; " 💰\n\n";
+        cout &lt;&lt; "1. Magic Potion 🧪 (50 coins) → heals 40 HP\n";
+        cout &lt;&lt; "2. Shiny Claw Sharpener ✂️ (200 coins) → +5 attack forever\n";
+        cout &lt;&lt; "3. Comfy Pillow 🛏️ (150 coins) → +20 max HP\n";
+        cout &lt;&lt; "4. Exit shop\n";
+        cout &lt;&lt; "Choice: ";
+       
+        int choice;
+        cin &gt;&gt; choice;
+
+        if (choice == 1 &amp;&amp; p.coins &gt;= 50) {
+            p.coins -= 50;
+            p.potions += 1;
+            cout &lt;&lt; "\nBought a potion! Ready to heal~ ✨\n";
+            Sleep(1500);
+        }
+        else if (choice == 2 &amp;&amp; p.coins &gt;= 200) {
+            p.coins -= 200;
+            p.attack += 5;
+            cout &lt;&lt; "\nYour claws are super sharp now! +5 attack ⚔️\n";
+            Sleep(1500);
+        }
+        else if (choice == 3 &amp;&amp; p.coins &gt;= 150) {
+            p.coins -= 150;
+            p.maxHp += 20;
+            p.hp += 20;
+            cout &lt;&lt; "\nYou feel stronger and cozier! +20 max HP ♥\n";
+            Sleep(1500);
+        }
+        else if (choice == 4) {
+            break;
+        }
+        else {
+            cout &lt;&lt; "\nNot enough coins or invalid choice nya~ 😿\n";
+            Sleep(1500);
+        }
+    }
+}
+
+int main() {
+    srand(time(NULL));
+    Player player;
+
+    cout &lt;&lt; "Starting Kawaii Cat RPG Adventure! 🐱💖\n";
+    Sleep(2000);
+
+    while (true) {
+        system("cls");
+        cout &lt;&lt; " /\\_/\\ \n";
+        cout &lt;&lt; " ( =^.^= ) \n";
+        cout &lt;&lt; " (\")(\") ♥ Kawaii Cat RPG ~nya!\n\n";
+        cout &lt;&lt; "Level: " &lt;&lt; player.level;
+        if (player.level &gt;= 99) cout &lt;&lt; " (MAX!) 🎉";
+        cout &lt;&lt; " EXP: " &lt;&lt; player.exp &lt;&lt; "/" &lt;&lt; player.expToNext &lt;&lt; "\n";
+        cout &lt;&lt; "HP: " &lt;&lt; player.hp &lt;&lt; "/" &lt;&lt; player.maxHp &lt;&lt; " Attack: " &lt;&lt; player.attack &lt;&lt; "\n";
+        cout &lt;&lt; "Coins: " &lt;&lt; player.coins &lt;&lt; " 💰 Potions: " &lt;&lt; player.potions &lt;&lt; " 🧪\n\n";
+        cout &lt;&lt; "1. Go Adventure (fight enemies!)\n";
+        cout &lt;&lt; "2. Visit Kawaii Shop 🛍️\n";
+        cout &lt;&lt; "3. Rest at home (full heal) 🏠\n";
+        cout &lt;&lt; "4. Quit game\n";
+        cout &lt;&lt; "Choice: ";
+       
+        int choice;
+        cin &gt;&gt; choice;
+
+        if (choice == 1) {
+            // Generate enemy based on player level
+            int type = rand() % 4;
+            Enemy e;
+            if (type == 0) { e.name = "Jelly Slime 🟢"; e.hp = 25; e.attack = 6; e.expReward = 20; e.coinReward = 12; }
+            else if (type == 1) { e.name = "Cheeky Mouse 🐭"; e.hp = 35; e.attack = 9; e.expReward = 30; e.coinReward = 18; }
+            else if (type == 2) { e.name = "Playful Puppy 🐶"; e.hp = 45; e.attack = 12; e.expReward = 40; e.coinReward = 25; }
+            else { e.name = "Mischievous Bird 🐦"; e.hp = 30; e.attack = 15; e.expReward = 35; e.coinReward = 20; }
+
+            // Updated scaling: enemies get stronger faster for increasing difficulty
+            e.hp += player.level * 12;
+            e.attack += player.level * 4;
+            e.expReward += player.level * 8;
+            e.coinReward += player.level * 5;
+
+            battle(player, e);
+        }
+        else if (choice == 2) {
+            shop(player);
+        }
+        else if (choice == 3) {
+            player.hp = player.maxHp;
+            system("cls");
+            cout &lt;&lt; "You curled up and napped~ Fully healed! Zzz... purr purr ♥\n";
+            Sleep(2000);
+        }
+        else if (choice == 4) {
+            system("cls");
+            cout &lt;&lt; "Thanks for playing Kawaii Cat RPG! Come back soon nya~ 🐱💕\n";
+            Sleep(2000);
+            break;
+        }
+    }
+    return 0;
+}</code></pre>
+
+    <p class="footer">Made with 💖 by a kawaii cat adventurer | Level 99 grind incoming! 🏆</p>
+
+    <!-- Load Prism.js for highlighting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body>
+</html>
