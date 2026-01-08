@@ -1,233 +1,179 @@
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const scoreElement = document.getElementById('score');
-
-let score = 0;
-
-// Free sound effects from Mixkit (royalty-free)
-const jumpSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-player-jumping-in-a-game-2045.mp3');
-const coinSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-jump-coin-216.mp3');
-
-const gravity = 0.6;
 const player = {
-    x: 100,
-    y: 380,
-    width: 60,
-    height: 80,
-    vx: 0,
-    vy: 0,
-    speed: 6,
-    jumpPower: -16,
-    onGround: false
+    level: 1, hp: 50, maxHp: 50, attack: 10, exp: 0, expToNext: 150,
+    coins: 0, potions: 0
 };
 
-const keys = {};
-window.addEventListener('keydown', e => keys[e.key] = true);
-window.addEventListener('keyup', e => keys[e.key] = false);
-
-const platforms = [
-    { x: 0,   y: 460, width: 800, height: 40 }, // ground
-    { x: 150, y: 400, width: 200, height: 20 },
-    { x: 400, y: 320, width: 180, height: 20 },
-    { x: 620, y: 240, width: 160, height: 20 },
-    { x: 300, y: 180, width: 120, height: 20 }
+const enemies = [
+    {name: "Jelly Slime 🟢", img: "https://www.shutterstock.com/shutterstock/photos/2216857803/display_1500/stock-vector-monster-slime-pixel-art-set-cute-colorful-blob-with-eyes-collection-kawaii-ooze-bit-sprite-2216857803.jpg", baseHp: 25, baseAtk: 6, exp: 20, coins: 12},
+    {name: "Cheeky Mouse 🐭", img: "https://www.shutterstock.com/image-vector/cute-cartoon-mouse-big-pink-260nw-2701893289.jpg", baseHp: 35, baseAtk: 9, exp: 30, coins: 18},
+    {name: "Playful Puppy 🐶", img: "https://images.stockcake.com/public/f/3/b/f3b08259-e9b7-471b-8e09-7546a0c90917/pixel-pup-routine-stockcake.jpg", baseHp: 45, baseAtk: 12, exp: 40, coins: 25},
+    {name: "Mischievous Bird 🐦", img: "https://i.pinimg.com/originals/bc/dc/59/bcdc59fd0c9148f8ce5e233b5c970dac.gif", baseHp: 30, baseAtk: 15, exp: 35, coins: 20}
 ];
 
-const coins = [
-    { x: 220, y: 360, radius: 15, collected: false },
-    { x: 480, y: 280, radius: 15, collected: false },
-    { x: 680, y: 200, radius: 15, collected: false },
-    { x: 350, y: 140, radius: 15, collected: false },
-    { x: 100, y: 300, radius: 15, collected: false }
-];
+let currentEnemy = null;
 
-function drawBackground() {
-    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    grad.addColorStop(0, '#87cefa');
-    grad.addColorStop(1, '#e0f7fa');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Cute clouds
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(150, 80, 35, 0, Math.PI * 2);
-    ctx.arc(190, 80, 45, 0, Math.PI * 2);
-    ctx.arc(230, 80, 35, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(550, 120, 40, 0, Math.PI * 2);
-    ctx.arc(590, 120, 50, 0, Math.PI * 2);
-    ctx.arc(630, 120, 40, 0, Math.PI * 2);
-    ctx.fill();
+function log(text) {
+    const logEl = document.getElementById('log');
+    logEl.innerHTML += '<br>' + text;
+    logEl.scrollTop = logEl.scrollHeight;
 }
 
-function drawPlatforms() {
-    ctx.fillStyle = '#ffc0cb';
-    platforms.forEach(p => {
-        ctx.fillRect(p.x, p.y, p.width, p.height);
-        ctx.strokeStyle = '#ff69b4';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(p.x, p.y, p.width, p.height);
-    });
+function updateStats() {
+    document.getElementById('level').textContent = player.level;
+    document.getElementById('exp').textContent = player.exp;
+    document.getElementById('expNext').textContent = player.expToNext;
+    document.getElementById('hp').textContent = player.hp;
+    document.getElementById('maxHp').textContent = player.maxHp;
+    document.getElementById('attack').textContent = player.attack;
+    document.getElementById('coins').textContent = player.coins;
+    document.getElementById('potions').textContent = player.potions;
+    document.getElementById('shopCoins').textContent = player.coins;
 }
 
-function drawCoins() {
-    coins.forEach(coin => {
-        if (coin.collected) return;
-        ctx.fillStyle = '#ffd700';
-        ctx.beginPath();
-        ctx.arc(coin.x, coin.y, coin.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#ffa500';
-        ctx.lineWidth = 3;
-        ctx.stroke();
+function adventure() {
+    const type = Math.floor(Math.random() * 4);
+    currentEnemy = {...enemies[type]};
+    currentEnemy.hp = currentEnemy.baseHp + player.level * 12;
+    currentEnemy.attack = currentEnemy.baseAtk + player.level * 4;
+    currentEnemy.expReward = currentEnemy.exp + player.level * 8;
+    currentEnemy.coinReward = currentEnemy.coins + player.level * 5;
 
-        // Kawaii face
-        ctx.fillStyle = '#000';
-        ctx.beginPath();
-        ctx.arc(coin.x - 6, coin.y - 4, 3, 0, Math.PI * 2);
-        ctx.arc(coin.x + 6, coin.y - 4, 3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(coin.x, coin.y + 4, 8, 0, Math.PI);
-        ctx.lineWidth = 2;
-        ctx.stroke();
-    });
+    document.getElementById('mainMenu').classList.add('hidden');
+    document.getElementById('shopMenu').classList.add('hidden');
+    document.getElementById('battleScreen').classList.remove('hidden');
+
+    document.getElementById('battleTitle').textContent = `🐱💥 A wild ${currentEnemy.name} appears! Nya~ 💥`;
+    document.getElementById('enemyImg').src = currentEnemy.img;
+    document.getElementById('enemyHp').textContent = currentEnemy.hp;
+    document.getElementById('playerHpBattle').textContent = player.hp;
+    document.getElementById('playerMaxHp').textContent = player.maxHp;
+    document.getElementById('battlePotions').textContent = player.potions;
+
+    log(`A wild ${currentEnemy.name} appeared!`);
 }
 
-function drawPlayer() {
-    const px = player.x;
-    const py = player.y;
+function attack() {
+    const damage = player.attack + Math.floor(Math.random() * 8);
+    currentEnemy.hp -= damage;
+    log(`You scratched with cute claws for ${damage} damage! Nya~ ✨`);
 
-    // Tail
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.moveTo(px + 50, py + 60);
-    ctx.quadraticCurveTo(px + 80, py + 40, px + 65, py + 20);
-    ctx.fill();
-
-    // Body
-    ctx.fillRect(px + 15, py + 45, 30, 25);
-
-    // Head
-    ctx.beginPath();
-    ctx.arc(px + 30, py + 30, 25, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Ears (inner pink)
-    ctx.fillStyle = '#ff69b4';
-    ctx.beginPath();
-    ctx.moveTo(px + 12, py + 18);
-    ctx.lineTo(px + 20, py + 5);
-    ctx.lineTo(px + 28, py + 18);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(px + 32, py + 18);
-    ctx.lineTo(px + 40, py + 5);
-    ctx.lineTo(px + 48, py + 18);
-    ctx.fill();
-
-    // Eyes
-    ctx.fillStyle = '#000000';
-    ctx.beginPath();
-    ctx.arc(px + 20, py + 25, 6, 0, Math.PI * 2);
-    ctx.arc(px + 40, py + 25, 6, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Eye shine
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(px + 22, py + 23, 3, 0, Math.PI * 2);
-    ctx.arc(px + 42, py + 23, 3, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Nose
-    ctx.fillStyle = '#ff69b4';
-    ctx.beginPath();
-    ctx.arc(px + 30, py + 35, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Whiskers
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(px + 5, py + 30);
-    ctx.lineTo(px - 15, py + 30);
-    ctx.moveTo(px + 55, py + 30);
-    ctx.lineTo(px + 75, py + 30);
-    ctx.stroke();
-}
-
-function update() {
-    player.vx = 0;
-    if (keys['ArrowLeft'] || keys['a'] || keys['A']) player.vx = -player.speed;
-    if (keys['ArrowRight'] || keys['d'] || keys['D']) player.vx = player.speed;
-
-    if ((keys[' '] || keys['ArrowUp'] || keys['w'] || keys['W']) && player.onGround) {
-        player.vy = player.jumpPower;
-        jumpSound.currentTime = 0;
-        jumpSound.play();
-        player.onGround = false;
+    if (currentEnemy.hp <= 0) {
+        endBattle(true);
+        return;
     }
 
-    player.vy += gravity;
-    player.x += player.vx;
-    player.y += player.vy;
+    enemyTurn();
+}
 
-    // Platform collision (landing on top)
-    player.onGround = false;
-    for (let p of platforms) {
-        if (player.vy >= 0 &&
-            player.y + player.height <= p.y + 10 && // was above or on
-            player.y + player.height + player.vy >= p.y &&
-            player.x + player.width > p.x &&
-            player.x < p.x + p.width) {
-            player.y = p.y - player.height;
-            player.vy = 0;
-            player.onGround = true;
-        }
+function enemyTurn() {
+    const damage = currentEnemy.attack + Math.floor(Math.random() * 6);
+    player.hp -= damage;
+    log(`The ${currentEnemy.name} attacks for ${damage} damage! Ouch~ 😿`);
+    document.getElementById('playerHpBattle').textContent = player.hp;
+
+    if (player.hp <= 0) {
+        gameOver();
+        return;
     }
+}
 
-    // Boundaries
-    if (player.x < 0) player.x = 0;
-    if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
-
-    // Fall reset
-    if (player.y > canvas.height) {
-        player.x = 100;
-        player.y = 380;
-        player.vy = 0;
+function usePotion() {
+    if (player.potions > 0) {
+        player.potions--;
+        player.hp += 40;
+        if (player.hp > player.maxHp) player.hp = player.maxHp;
+        log('You drank a sparkling potion! +40 HP ~purr~ 🧪💕');
+        updateStats();
+        document.getElementById('playerHpBattle').textContent = player.hp;
+        document.getElementById('battlePotions').textContent = player.potions;
+        enemyTurn();
+    } else {
+        log('No potions left! Nya... 😿');
     }
+}
 
-    // Coin collection
-    coins.forEach(coin => {
-        if (!coin.collected) {
-            const dist = Math.hypot(player.x + player.width / 2 - coin.x, player.y + player.height / 2 - coin.y);
-            if (dist < 40) {
-                coin.collected = true;
-                score++;
-                scoreElement.textContent = `Score: ${score} ✨`;
-                coinSound.currentTime = 0;
-                coinSound.play();
+function runAway() {
+    if (Math.random() < 0.66) {
+        log('You ran away safely! 🏃💨');
+        endBattle(false);
+    } else {
+        log("Couldn't escape! The enemy attacks! 😾");
+        enemyTurn();
+    }
+}
+
+function endBattle(victory) {
+    if (victory) {
+        log(`You defeated the ${currentEnemy.name}! Victory purr~ 🎉`);
+        player.exp += currentEnemy.expReward;
+        player.coins += currentEnemy.coinReward;
+        log(`+ ${currentEnemy.expReward} EXP + ${currentEnemy.coinReward} coins 💰`);
+
+        while (player.exp >= player.expToNext) {
+            player.level++;
+            player.exp -= player.expToNext;
+            player.expToNext += 30;
+            player.maxHp += 10;
+            player.hp = player.maxHp;
+            player.attack += 3;
+            log(`✨ LEVEL UP! ✨ Now level ${player.level}! Stronger and cuter~ 🐱💖`);
+            if (player.level >= 99) {
+                log(`🎉🎉 CONGRATULATIONS!!! You reached level 99! Ultimate kawaii cat hero! 🏆🐱✨`);
             }
         }
-    });
+    }
+    document.getElementById('battleScreen').classList.add('hidden');
+    document.getElementById('mainMenu').classList.remove('hidden');
+    updateStats();
 }
 
-function render() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawBackground();
-    drawPlatforms();
-    drawCoins();
-    drawPlayer();
+function gameOver() {
+    log('🐱💔 You fainted... Game Over nya... 💔');
+    alert('Game Over! Resetting... 😿');
+    player.level = 1; player.hp = player.maxHp = 50; player.attack = 10;
+    player.exp = 0; player.expToNext = 150; player.coins = 0; player.potions = 0;
+    endBattle(false);
 }
 
-function gameLoop() {
-    update();
-    render();
-    requestAnimationFrame(gameLoop);
+function rest() {
+    player.hp = player.maxHp;
+    log('You curled up and napped~ Fully healed! Zzz... purr purr ♥');
+    updateStats();
 }
 
-gameLoop();
+function openShop() {
+    document.getElementById('mainMenu').classList.add('hidden');
+    document.getElementById('shopMenu').classList.remove('hidden');
+}
+
+function closeShop() {
+    document.getElementById('shopMenu').classList.add('hidden');
+    document.getElementById('mainMenu').classList.remove('hidden');
+}
+
+function buyPotion() {
+    if (player.coins >= 50) {
+        player.coins -= 50; player.potions++;
+        log('Bought a potion! Ready to heal~ ✨');
+        updateStats();
+    } else log('Not enough coins nya~ 😿');
+}
+
+function buyAttack() {
+    if (player.coins >= 200) {
+        player.coins -= 200; player.attack += 5;
+        log('Your claws are super sharp now! +5 attack ⚔️');
+        updateStats();
+    } else log('Not enough coins nya~ 😿');
+}
+
+function buyHp() {
+    if (player.coins >= 150) {
+        player.coins -= 150; player.maxHp += 20; player.hp += 20;
+        log('You feel stronger and cozier! +20 max HP ♥');
+        updateStats();
+    } else log('Not enough coins nya~ 😿');
+}
+
+updateStats();
+log('Welcome! Choose an option to start nya~ 🐱💕');
